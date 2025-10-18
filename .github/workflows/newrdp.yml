@@ -1,4 +1,4 @@
-name: macOS Full Access (SSH + VNC)
+name: macOS Full Access (SSH + VNC) 3
 
 on: 
   workflow_dispatch:
@@ -18,10 +18,63 @@ jobs:
           -clientopts -setvncpw -vncpw MyVNCPass123 \
           -restart -agent -privs -all
         
-        echo "✅ VNC enabled on port 5900"
+        echo ""
+        echo "════════════════════════════════════════"
+        echo "✅ VNC READY!"
+        echo "════════════════════════════════════════"
+        echo ""
         echo "🔑 VNC Password: MyVNCPass123"
+        echo "📡 Port: 5900"
+        echo ""
     
-    - name: Setup SSH Access (upterm)
-      uses: lhotari/action-upterm@v1
-      with:
-        wait-timeout-minutes: 180
+    - name: Install tmate
+      run: |
+        echo "📥 Installing tmate..."
+        brew install tmate
+    
+    - name: Start tmate session
+      run: |
+        echo "🚀 Starting tmate session..."
+        echo ""
+        
+        # Generate SSH key if not exists
+        if [ ! -f ~/.ssh/id_rsa ]; then
+          ssh-keygen -t rsa -N "" -f ~/.ssh/id_rsa
+        fi
+        
+        # Start tmate
+        tmate -S /tmp/tmate.sock new-session -d
+        tmate -S /tmp/tmate.sock wait tmate-ready
+        
+        # Get connection info
+        echo ""
+        echo "════════════════════════════════════════════════════════"
+        echo "✅ SSH ACCESS READY!"
+        echo "════════════════════════════════════════════════════════"
+        echo ""
+        echo "🔗 SSH Command:"
+        tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
+        echo ""
+        echo "🔗 Web URL (jika SSH tidak bisa):"
+        tmate -S /tmp/tmate.sock display -p '#{tmate_web}'
+        echo ""
+        echo "════════════════════════════════════════════════════════"
+        echo ""
+        echo "📋 UNTUK AKSES VNC:"
+        echo ""
+        echo "1. Copy SSH command di atas"
+        echo "2. Di terminal LOCAL kamu, jalankan SSH tunnel:"
+        echo "   ssh -L 5900:localhost:5900 [SSH_COMMAND_DIATAS]"
+        echo ""
+        echo "3. Buka VNC Viewer, connect ke: localhost"
+        echo "4. Password: MyVNCPass123"
+        echo ""
+        echo "════════════════════════════════════════════════════════"
+        echo ""
+        
+        # Keep alive
+        echo "⏰ Session running for 3 hours..."
+        for i in {1..180}; do
+          echo "⏱️  Minute $i/180"
+          sleep 60
+        done
