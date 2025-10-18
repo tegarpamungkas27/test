@@ -1,0 +1,108 @@
+name: macOS VNC via Cloudflare
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  macos-vnc:
+    runs-on: macos-latest
+    timeout-minutes: 30  # 2 jam
+    
+    steps:
+    - name: Setup VNC Server
+      run: |
+        echo "🔧 Setting up VNC Server..."
+        
+        # Enable Screen Sharing / VNC
+        sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+          -activate \
+          -configure \
+          -access -on \
+          -clientopts -setvnclegacy -vnclegacy yes \
+          -clientopts -setvncpw -vncpw MyPassword123 \
+          -restart \
+          -agent \
+          -privs -all
+        
+        echo "✅ VNC Server is running on port 5900"
+        echo ""
+    
+    - name: Install Cloudflare Tunnel
+      run: |
+        echo "📥 Installing cloudflared..."
+        brew install cloudflared
+        echo "✅ cloudflared installed"
+        echo ""
+    
+    - name: Create Cloudflare Tunnel
+      run: |
+        echo "🚇 Creating Cloudflare Tunnel..."
+        echo ""
+        
+        # Start tunnel in background
+        nohup cloudflared tunnel --url tcp://localhost:5900 > tunnel.log 2>&1 &
+        
+        # Wait for tunnel to start
+        echo "⏳ Waiting for tunnel to initialize..."
+        sleep 15
+        
+        # Show tunnel info
+        echo ""
+        echo "════════════════════════════════════════════════════════"
+        echo "✅ CLOUDFLARE TUNNEL IS READY!"
+        echo "════════════════════════════════════════════════════════"
+        echo ""
+        
+        # Extract and display the tunnel URL
+        cat tunnel.log
+        
+        echo ""
+        echo "────────────────────────────────────────────────────────"
+        echo "📋 CONNECTION INFO:"
+        echo "────────────────────────────────────────────────────────"
+        echo ""
+        echo "🔑 VNC Password: MyPassword123"
+        echo ""
+        echo "📱 CARA CONNECT:"
+        echo ""
+        echo "1. Lihat URL di atas yang formatnya:"
+        echo "   https://xxxxxxxx-xxxx-xxxx.trycloudflare.com"
+        echo ""
+        echo "2. Copy URL tersebut (tanpa https://)"
+        echo ""
+        echo "3. Download VNC Viewer:"
+        echo "   https://www.realvnc.com/en/connect/download/viewer/"
+        echo ""
+        echo "4. Buka VNC Viewer, masukkan:"
+        echo "   - Address: xxxxxxxx.trycloudflare.com"
+        echo "   - Password: MyPassword123"
+        echo ""
+        echo "5. Klik Connect!"
+        echo ""
+        echo "════════════════════════════════════════════════════════"
+        echo ""
+    
+    - name: Keep Session Alive
+      run: |
+        echo "⏰ Session will run for 2 hours (120 minutes)"
+        echo "⚠️  JANGAN LUPA: Cancel workflow setelah selesai!"
+        echo ""
+        echo "💡 Tip: Bisa diperpanjang dengan mengedit timeout-minutes di workflow"
+        echo ""
+        
+        # Keep alive loop
+        for i in {1..120}; do
+          echo "⏱️  Running... ($i/120 minutes)"
+          
+          # Show tunnel status every 10 minutes
+          if [ $((i % 10)) -eq 0 ]; then
+            echo "📊 Tunnel status:"
+            tail -5 tunnel.log
+            echo ""
+          fi
+          
+          sleep 60
+        done
+        
+        echo ""
+        echo "⏹️  Session ended after 2 hours"
