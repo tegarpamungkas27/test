@@ -1,0 +1,28 @@
+name: macOS Full Access (SSH + VNC)
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  macos-access:
+    runs-on: macos-latest
+    timeout-minutes: 180  # 3 jam
+    
+    steps:
+    - name: Setup VNC
+      run: |
+        echo "🔧 Enabling VNC..."
+        sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+          -activate -configure -access -on \
+          -clientopts -setvnclegacy -vnclegacy yes \
+          -clientopts -setvncpw -vncpw MyVNCPass123 \
+          -restart -agent -privs -all
+        
+        echo "✅ VNC enabled on port 5900"
+        echo "🔑 VNC Password: MyVNCPass123"
+    
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+      timeout-minutes: 180
